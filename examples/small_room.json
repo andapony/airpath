@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "sample_rate": 48000,
+  "room": {
+    "width": 5.0,
+    "depth": 4.0,
+    "height": 2.8,
+    "surfaces": {
+      "floor":   "hardwood_floor",
+      "ceiling": "acoustic_tile",
+      "north":   "drywall",
+      "south":   "drywall",
+      "east":    "drywall",
+      "west":    "glass_window"
+    }
+  },
+  "sources": [
+    { "id": "guitar", "x": 1.5, "y": 1.0, "z": 1.2 },
+    { "id": "vocal",  "x": 3.5, "y": 2.0, "z": 1.5 }
+  ],
+  "mics": [
+    {
+      "id": "guitar_close",
+      "x": 1.7, "y": 1.0, "z": 1.2,
+      "aim": { "azimuth": 270, "elevation": 0 },
+      "pattern": "cardioid"
+    },
+    {
+      "id": "room",
+      "x": 2.5, "y": 3.5, "z": 1.8,
+      "aim": { "azimuth": 180, "elevation": -10 },
+      "pattern": "omni"
+    }
+  ],
+  "gobos": []
+}
