@@ -32,6 +32,7 @@ func runGenerate(args []string) {
 	outputDir := fs.String("output", "./output", "output directory")
 	sampleRate := fs.Int("samplerate", 0, "sample rate override in Hz (default: from scene file)")
 	duration := fs.Float64("duration", 1.0, "IR duration in seconds")
+	order := fs.Int("order", 4, "maximum reflection order (0 = direct path only)")
 	fs.Parse(args)
 
 	if *scenePath == "" {
@@ -40,10 +41,11 @@ func runGenerate(args []string) {
 	}
 
 	if err := engine.Run(engine.Config{
-		ScenePath:  *scenePath,
-		OutputDir:  *outputDir,
-		SampleRate: *sampleRate,
-		Duration:   *duration,
+		ScenePath:       *scenePath,
+		OutputDir:       *outputDir,
+		SampleRate:      *sampleRate,
+		Duration:        *duration,
+		ReflectionOrder: *order,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
