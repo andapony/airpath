@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "sample_rate": 48000,
+  "room": {
+    "width":  400.0,
+    "depth":  400.0,
+    "height":  80.0,
+    "surfaces": {
+      "floor":   "concrete",
+      "ceiling": "concrete",
+      "north":   "concrete",
+      "south":   "concrete",
+      "east":    "concrete",
+      "west":    "concrete"
+    }
+  },
+  "sources": [
+    { "id": "source", "x": 200.0, "y": 5.0, "z": 1.8 }
+  ],
+  "mics": [
+    {
+      "id":      "near_1m",
+      "x": 200.0, "y": 6.0, "z": 1.8,
+      "aim": { "azimuth": 180, "elevation": 0 },
+      "pattern": "omni"
+    },
+    {
+      "id":      "mid_50m",
+      "x": 200.0, "y": 55.0, "z": 1.8,
+      "aim": { "azimuth": 180, "elevation": 0 },
+      "pattern": "omni"
+    },
+    {
+      "id":      "far_150m",
+      "x": 200.0, "y": 155.0, "z": 1.8,
+      "aim": { "azimuth": 180, "elevation": 0 },
+      "pattern": "omni"
+    },
+    {
+      "id":      "distant_300m",
+      "x": 200.0, "y": 305.0, "z": 1.8,
+      "aim": { "azimuth": 180, "elevation": 0 },
+      "pattern": "omni"
+    }
+  ],
+  "gobos": []
+}
