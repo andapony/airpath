@@ -27,6 +27,8 @@ type imageSource struct {
 	wallHits [6]int // west, east, south, north, floor, ceiling
 }
 
+// iabs returns the absolute value of n. math.Abs operates on float64; this
+// avoids an int→float64 conversion in the hot path.
 func iabs(n int) int {
 	if n < 0 {
 		return -n
