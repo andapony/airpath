@@ -42,3 +42,25 @@ func TestRunMissingScene(t *testing.T) {
 	})
 	assert.Error(t, err)
 }
+
+func TestRunSmallRoom_WithReflections(t *testing.T) {
+	outDir := t.TempDir()
+	err := Run(Config{
+		ScenePath:       "../../examples/small_room.json",
+		OutputDir:       outDir,
+		Duration:        1.0,
+		ReflectionOrder: 1,
+	})
+	require.NoError(t, err)
+
+	for _, name := range []string{
+		"guitar_to_guitar_close.wav",
+		"guitar_to_room.wav",
+		"vocal_to_guitar_close.wav",
+		"vocal_to_room.wav",
+	} {
+		info, err := os.Stat(filepath.Join(outDir, name))
+		require.NoError(t, err, "expected output file %s", name)
+		assert.Positive(t, info.Size(), "output file %s should not be empty", name)
+	}
+}

@@ -12,14 +12,16 @@ import (
 
 // Config holds runtime parameters for a generate run.
 type Config struct {
-	ScenePath  string
-	OutputDir  string
-	SampleRate int     // overrides scene sample_rate when > 0
-	Duration   float64 // IR duration in seconds
+	ScenePath       string
+	OutputDir       string
+	SampleRate      int     // overrides scene sample_rate when > 0
+	Duration        float64 // IR duration in seconds
+	ReflectionOrder int     // maximum reflection order; 0 = direct path only
 }
 
-// Run loads the scene, computes direct-path IRs for all source-mic pairs,
-// and writes WAV files to OutputDir.
+// Run loads the scene, computes IRs for all source-mic pairs, and writes WAV
+// files to OutputDir. With ReflectionOrder > 0, image-source reflections are
+// accumulated alongside the direct path.
 func Run(cfg Config) error {
 	s, err := scene.Parse(cfg.ScenePath)
 	if err != nil {
@@ -43,8 +45,12 @@ func Run(cfg Config) error {
 
 	for _, src := range s.Sources {
 		for _, mic := range s.Mics {
-			contrib := acoustics.ComputeDirect(src, mic, sampleRate)
-			ir := acoustics.AssembleIR([]acoustics.PathContribution{contrib}, lengthSamples)
+			contributions := []acoustics.PathContribution{acoustics.ComputeDirect(src, mic, sampleRate)}
+			if cfg.ReflectionOrder > 0 {
+				contributions = append(contributions,
+					acoustics.ComputeReflections(src, mic, s.Room, cfg.ReflectionOrder, sampleRate)...)
+			}
+			ir := acoustics.AssembleIR(contributions, lengthSamples)
 
 			filename := fmt.Sprintf("%s_to_%s.wav", src.ID, mic.ID)
 			if err := output.WriteWAV(filepath.Join(cfg.OutputDir, filename), ir, sampleRate); err != nil {
