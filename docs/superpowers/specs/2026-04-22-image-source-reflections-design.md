@@ -65,8 +65,9 @@ where `n` is the axis index (p, q, or r), `L` is the room dimension, and `s` is 
 For axis index `n` (with `|n|` total reflections on that axis):
 
 ```
-positive-wall hits = ceil(|n|/2)  if n > 0,  else floor(|n|/2)
-negative-wall hits = floor(|n|/2) if n > 0,  else ceil(|n|/2)
+if n == 0: both walls get 0 hits
+if n > 0:  positive-wall hits = ceil(|n|/2),  negative-wall hits = floor(|n|/2)
+if n < 0:  positive-wall hits = floor(|n|/2), negative-wall hits = ceil(|n|/2)
 ```
 
 Applied per axis:
