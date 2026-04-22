@@ -169,6 +169,10 @@ The aim direction is set in the scene file as azimuth (0° = north/+Y, 90° = ea
 
 There is also a hard frequency limit for geometric acoustics. Below the *Schroeder frequency* — roughly 100–200 Hz for a typical small room — modes are sparse and widely separated, and the wave nature of sound dominates. Accurate modeling in that region requires a wave-based solver (finite element method, FDTD). airpath makes no attempt to model low-frequency modal behavior and is best suited to frequencies above ~150 Hz, which covers the bulk of musical content relevant to the bleed-simulation use case.
 
+**Pressure-zone (boundary) microphones.** A PZM mounted flush against a surface exploits the fact that the direct sound and the surface reflection arrive simultaneously, summing coherently for a +6 dB sensitivity boost across all frequencies. airpath reproduces this correctly as a natural consequence of the geometry: place a mic at `z: 0` on the floor (or `x: 0` on a wall) and the corresponding image source is at the mirror position, giving identical travel distances for the direct path and the surface reflection. Both contributions land on the same sample and their amplitudes add — no special-casing required.
+
+What the model gets wrong is the polar pattern. A real PZM is sensitive only to the half-space facing away from its mounting surface; the wall or floor behind it acts as a baffle. airpath's `omni` pattern is a full sphere, so a floor-mounted mic will receive contributions from image sources at negative z — paths that notionally arrive through the floor, which is not physical. Those sources represent high-order, heavily attenuated reflections, so the error is usually minor in practice, but it is an error. A proper hemispherical pattern option is the missing piece for accurate PZM simulation.
+
 ## Algorithms
 
 **Mic polar pattern:** `gain(θ) = a + (1 - a) * cos(θ)`
