@@ -108,3 +108,69 @@ func TestEnumerateImageSources_EastWallImage(t *testing.T) {
 	}
 	assert.True(t, found, "expected image source at (18, 2, 1)")
 }
+
+func TestComputeReflections_Order0(t *testing.T) {
+	src := scene.Source{X: 2, Y: 2, Z: 1}
+	mic := scene.Mic{
+		X: 7, Y: 2, Z: 1,
+		Pattern: "omni",
+		Aim:     scene.Aim{Azimuth: 0, Elevation: 0},
+	}
+	room := scene.Room{
+		Width: 10, Depth: 8, Height: 4,
+		Surfaces: scene.Surfaces{
+			West: "concrete", East: "concrete",
+			South: "concrete", North: "concrete",
+			Floor: "concrete", Ceiling: "concrete",
+		},
+	}
+	contribs := ComputeReflections(src, mic, room, 0, 48000)
+	assert.Empty(t, contribs)
+}
+
+func TestComputeReflections_Order1Count(t *testing.T) {
+	src := scene.Source{X: 2, Y: 2, Z: 1}
+	mic := scene.Mic{
+		X: 7, Y: 2, Z: 1,
+		Pattern: "omni",
+		Aim:     scene.Aim{Azimuth: 0, Elevation: 0},
+	}
+	room := scene.Room{
+		Width: 10, Depth: 8, Height: 4,
+		Surfaces: scene.Surfaces{
+			West: "concrete", East: "concrete",
+			South: "concrete", North: "concrete",
+			Floor: "concrete", Ceiling: "concrete",
+		},
+	}
+	contribs := ComputeReflections(src, mic, room, 1, 48000)
+	assert.Len(t, contribs, 6)
+}
+
+func TestComputeReflections_FirstOrderDelay(t *testing.T) {
+	// src=(2,2,1), mic=(7,2,1), room 10×8×4 m, 48000 Hz, all walls concrete.
+	// East-wall image (p=1): x=18, dist=11m → delay=round(11/343*48000)=1539
+	// West-wall image (p=-1): x=-2,  dist=9m  → delay=round(9/343*48000)=1259
+	src := scene.Source{X: 2, Y: 2, Z: 1}
+	mic := scene.Mic{
+		X: 7, Y: 2, Z: 1,
+		Pattern: "omni",
+		Aim:     scene.Aim{Azimuth: 0, Elevation: 0},
+	}
+	room := scene.Room{
+		Width: 10, Depth: 8, Height: 4,
+		Surfaces: scene.Surfaces{
+			West: "concrete", East: "concrete",
+			South: "concrete", North: "concrete",
+			Floor: "concrete", Ceiling: "concrete",
+		},
+	}
+	contribs := ComputeReflections(src, mic, room, 1, 48000)
+
+	delays := make(map[int]bool, len(contribs))
+	for _, c := range contribs {
+		delays[c.DelaySamples] = true
+	}
+	assert.True(t, delays[1539], "expected east-wall reflection at 1539 samples (11m)")
+	assert.True(t, delays[1259], "expected west-wall reflection at 1259 samples (9m)")
+}
