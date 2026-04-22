@@ -153,21 +153,21 @@ New flag in `cmd/airpath/main.go`:
 
 ### Unit tests — `internal/acoustics/image_source_test.go`
 
-| Test | What it checks |
-|------|---------------|
-| `imageCoord` values | 10m room, source at 3m: n=1→17m, n=-1→-3m, n=2→23m |
-| Wall hit counts | p=3: east=2, west=1; p=-2: east=1, west=1 |
-| First-order delay | Image (1,0,0) arrives at correct sample delay for known geometry |
-| Perfect absorber | All surfaces α=1.0 → absorptionScalar=0, amplitude=0 |
-| Perfect reflector | All surfaces α=0.0 → absorptionScalar=1, amplitude = 1/distance only |
-| Empty at order 0 | `ComputeReflections(..., 0, ...)` returns empty slice |
+| Test                | What it checks                                                       |
+|---------------------|----------------------------------------------------------------------|
+| `imageCoord` values | 10m room, source at 3m: n=1→17m, n=-1→-3m, n=2→23m                   |
+| Wall hit counts     | p=3: east=2, west=1; p=-2: east=1, west=1                            |
+| First-order delay   | Image (1,0,0) arrives at correct sample delay for known geometry     |
+| Perfect absorber    | All surfaces α=1.0 → absorptionScalar=0, amplitude=0                 |
+| Perfect reflector   | All surfaces α=0.0 → absorptionScalar=1, amplitude = 1/distance only |
+| Empty at order 0    | `ComputeReflections(..., 0, ...)` returns empty slice                |
 
 ### Integration tests — `internal/engine/engine_test.go`
 
-| Test | What it checks |
-|------|---------------|
-| Order 0 regression | `ReflectionOrder=0` output matches M1 direct-path-only WAV |
-| Order 1 additive | `ReflectionOrder=1` produces more contributions than order 0 for same pair |
+| Test               | What it checks                                                             |
+|--------------------|----------------------------------------------------------------------------|
+| Order 0 regression | `ReflectionOrder=0` output matches M1 direct-path-only WAV                 |
+| Order 1 additive   | `ReflectionOrder=1` produces more contributions than order 0 for same pair |
 
 ## Validation (from dev plan)
 
