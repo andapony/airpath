@@ -34,3 +34,35 @@ func TestAxisHits(t *testing.T) {
 		assert.Equal(t, tt.wantNeg, neg, "axisHits(%d) negWall", tt.n)
 	}
 }
+
+func TestReflectionScalar(t *testing.T) {
+	var noHits [6]int
+	var noAlpha [6]float64
+
+	// no hits → scalar is 1 regardless of alphas
+	assert.InDelta(t, 1.0, reflectionScalar(noHits, noAlpha), 1e-9)
+
+	var hits [6]int
+	hits[0] = 1
+	var alphas [6]float64
+
+	// perfect absorber: (1 - 1.0)^1 = 0
+	alphas[0] = 1.0
+	assert.InDelta(t, 0.0, reflectionScalar(hits, alphas), 1e-9)
+
+	// perfect reflector: (1 - 0.0)^1 = 1
+	alphas[0] = 0.0
+	assert.InDelta(t, 1.0, reflectionScalar(hits, alphas), 1e-9)
+
+	// two hits at 0.5 absorption: (0.5)^2 = 0.25
+	hits[0] = 2
+	alphas[0] = 0.5
+	assert.InDelta(t, 0.25, reflectionScalar(hits, alphas), 1e-9)
+
+	// two walls: (0.5)^1 * (0.75)^1 = 0.375
+	hits[0] = 1
+	alphas[0] = 0.5
+	hits[1] = 1
+	alphas[1] = 0.25
+	assert.InDelta(t, 0.375, reflectionScalar(hits, alphas), 1e-9)
+}
