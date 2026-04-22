@@ -161,6 +161,14 @@ Omni is the simplest: `cos(θ)` cancels out and sensitivity is the same in every
 
 The aim direction is set in the scene file as azimuth (0° = north/+Y, 90° = east/+X, clockwise) and elevation (0° = horizontal, positive = upward). airpath converts this to a unit vector and computes cos(θ) via the dot product with the direction of each incoming path.
 
+### Model Limitations
+
+**Phase changes at surfaces.** When sound reflects off a surface, the surface's acoustic impedance can shift the phase of the reflected wave. airpath's amplitude values are real scalars — there is no phase rotation per bounce. For typical hard surfaces (concrete, brick, drywall) this is a reasonable approximation, since those materials are close to the rigid limit and reflect with little phase shift. It becomes inaccurate for soft or resonant surfaces, grazing-angle incidence, or any situation where impedance mismatch is significant. A more complete model would use complex-valued per-band amplitudes, which is a prerequisite for the per-band FIR filtering planned for Milestone 5.
+
+**Room resonance modes.** The image-source method is mathematically equivalent to the exact wave equation solution for a rigid rectangular room when summed to infinite order — room modes emerge naturally from the constructive interference of image sources whose delays are integer multiples of a modal period. In practice, airpath uses a finite reflection order (default 4, producing at most 258 image sources) and a truncated IR duration. Room modes are a steady-state phenomenon that builds up over hundreds or thousands of bounces; a 4th-order model captures the early reflections but not the resonant buildup. The resulting IR shows frequency-domain coloration related to the room geometry, but not sharp standing-wave peaks.
+
+There is also a hard frequency limit for geometric acoustics. Below the *Schroeder frequency* — roughly 100–200 Hz for a typical small room — modes are sparse and widely separated, and the wave nature of sound dominates. Accurate modeling in that region requires a wave-based solver (finite element method, FDTD). airpath makes no attempt to model low-frequency modal behavior and is best suited to frequencies above ~150 Hz, which covers the bulk of musical content relevant to the bleed-simulation use case.
+
 ## Algorithms
 
 **Mic polar pattern:** `gain(θ) = a + (1 - a) * cos(θ)`
