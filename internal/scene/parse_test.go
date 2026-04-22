@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const validSceneJSON = `{
@@ -28,23 +31,16 @@ const validSceneJSON = `{
 func writeTemp(t *testing.T, content string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "scene.json")
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 	return path
 }
 
 func TestParseValid(t *testing.T) {
 	s, err := Parse(writeTemp(t, validSceneJSON))
-	if err != nil {
-		t.Fatalf("Parse() error: %v", err)
-	}
-	if len(s.Sources) != 1 || s.Sources[0].ID != "src" {
-		t.Errorf("unexpected sources: %v", s.Sources)
-	}
-	if s.Room.Width != 5.0 {
-		t.Errorf("Room.Width = %v, want 5.0", s.Room.Width)
-	}
+	require.NoError(t, err)
+	require.Len(t, s.Sources, 1)
+	assert.Equal(t, "src", s.Sources[0].ID)
+	assert.Equal(t, 5.0, s.Room.Width)
 }
 
 func TestParseUnknownMaterial(t *testing.T) {
@@ -62,9 +58,7 @@ func TestParseUnknownMaterial(t *testing.T) {
 		"mics": [{"id": "m", "x": 2, "y": 2, "z": 1, "aim": {"azimuth": 0, "elevation": 0}, "pattern": "omni"}]
 	}`
 	_, err := Parse(writeTemp(t, bad))
-	if err == nil {
-		t.Error("expected error for unknown material, got nil")
-	}
+	assert.Error(t, err)
 }
 
 func TestParseUnknownPattern(t *testing.T) {
@@ -82,9 +76,7 @@ func TestParseUnknownPattern(t *testing.T) {
 		"mics": [{"id": "m", "x": 2, "y": 2, "z": 1, "aim": {"azimuth": 0, "elevation": 0}, "pattern": "bidirectional"}]
 	}`
 	_, err := Parse(writeTemp(t, bad))
-	if err == nil {
-		t.Error("expected error for unknown pattern, got nil")
-	}
+	assert.Error(t, err)
 }
 
 func TestParseNoSources(t *testing.T) {
@@ -102,7 +94,5 @@ func TestParseNoSources(t *testing.T) {
 		"mics": [{"id": "m", "x": 2, "y": 2, "z": 1, "aim": {"azimuth": 0, "elevation": 0}, "pattern": "omni"}]
 	}`
 	_, err := Parse(writeTemp(t, bad))
-	if err == nil {
-		t.Error("expected error for empty sources, got nil")
-	}
+	assert.Error(t, err)
 }
