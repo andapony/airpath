@@ -56,8 +56,7 @@ func TestDiffractionScalarBlocked(t *testing.T) {
 	a := geometry.Vec3{X: 2.0, Y: 1.0, Z: 1.0}
 	b := geometry.Vec3{X: 2.0, Y: 3.0, Z: 1.0}
 	got := DiffractionScalar(a, b, []scene.Gobo{testGobo})
-	assert.Greater(t, got, 0.0, "scalar must be positive")
-	assert.Less(t, got, 1.0, "blocked path must be attenuated")
+	assert.InDelta(t, 0.1003, got, 0.001, "expected Maekawa scalar for testGobo geometry")
 }
 
 func TestDiffractionScalarMultiple(t *testing.T) {
