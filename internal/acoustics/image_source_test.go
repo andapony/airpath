@@ -124,7 +124,7 @@ func TestComputeReflections_Order0(t *testing.T) {
 			Floor: "concrete", Ceiling: "concrete",
 		},
 	}
-	contribs := ComputeReflections(src, mic, room, 0, 48000)
+	contribs := ComputeReflections(src, mic, room, 0, 48000, nil)
 	assert.Empty(t, contribs)
 }
 
@@ -143,7 +143,7 @@ func TestComputeReflections_Order1Count(t *testing.T) {
 			Floor: "concrete", Ceiling: "concrete",
 		},
 	}
-	contribs := ComputeReflections(src, mic, room, 1, 48000)
+	contribs := ComputeReflections(src, mic, room, 1, 48000, nil)
 	assert.Len(t, contribs, 6)
 }
 
@@ -165,7 +165,7 @@ func TestComputeReflections_FirstOrderDelay(t *testing.T) {
 			Floor: "concrete", Ceiling: "concrete",
 		},
 	}
-	contribs := ComputeReflections(src, mic, room, 1, 48000)
+	contribs := ComputeReflections(src, mic, room, 1, 48000, nil)
 
 	delays := make(map[int]bool, len(contribs))
 	for _, c := range contribs {

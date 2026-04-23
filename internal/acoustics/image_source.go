@@ -127,7 +127,7 @@ func enumerateImageSources(src scene.Source, room scene.Room, maxOrder int) []im
 //
 // TODO: add path-length culling to skip image sources whose travel distance
 // exceeds the IR duration, pruning contributions that fall outside the IR buffer.
-func ComputeReflections(src scene.Source, mic scene.Mic, room scene.Room, maxOrder, sampleRate int) []PathContribution {
+func ComputeReflections(src scene.Source, mic scene.Mic, room scene.Room, maxOrder, sampleRate int, gobos []scene.Gobo) []PathContribution {
 	if maxOrder <= 0 {
 		return nil
 	}
@@ -156,10 +156,12 @@ func ComputeReflections(src scene.Source, mic scene.Mic, room scene.Room, maxOrd
 		sourceDir := img.pos.Sub(micPos).Normalize()
 		polar := PolarGain(mic.Pattern, mic.Aim.Azimuth, mic.Aim.Elevation, sourceDir)
 		absScalar := absorptionScalar(img.wallHits, materials)
+		effGobos := effectiveGobos(img, gobos, room)
+		diffractionScalar := DiffractionScalar(img.pos, micPos, effGobos)
 
 		contributions = append(contributions, PathContribution{
 			DelaySamples: delaySamples,
-			Amplitude:    amplitude * airScalar * polar * absScalar,
+			Amplitude:    amplitude * airScalar * polar * absScalar * diffractionScalar,
 		})
 	}
 

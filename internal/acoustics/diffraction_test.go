@@ -161,3 +161,40 @@ func TestGoboAttenuatesDirect(t *testing.T) {
 	assert.Less(t, with.Amplitude, without.Amplitude, "gobo should reduce amplitude")
 	assert.Equal(t, without.DelaySamples, with.DelaySamples, "gobo should not affect delay")
 }
+
+func TestGoboAttenuatesReflection(t *testing.T) {
+	// Room 10×8×4m, source at (2,2,1), mic at (7,4,1).
+	// Gobo at east wall (x=8) blocking the east-wall 1st-order reflection.
+	src := scene.Source{ID: "s", X: 2, Y: 2, Z: 1}
+	mic := scene.Mic{
+		ID:      "m",
+		X:       7, Y: 4, Z: 1,
+		Pattern: "omni",
+		Aim:     scene.Aim{Azimuth: 0, Elevation: 0},
+	}
+	room := scene.Room{
+		Width: 10, Depth: 8, Height: 4,
+		Surfaces: scene.Surfaces{
+			West: "concrete", East: "concrete",
+			South: "concrete", North: "concrete",
+			Floor: "concrete", Ceiling: "concrete",
+		},
+	}
+	gobo := scene.Gobo{X1: 8, Y1: 2, X2: 8, Y2: 4, Height: 2, Material: "plywood"}
+
+	// Compute reflections without gobo.
+	contribsWithout := ComputeReflections(src, mic, room, 1, 48000, nil)
+	ampWithout := 0.0
+	for _, c := range contribsWithout {
+		ampWithout += c.Amplitude
+	}
+
+	// Compute reflections with gobo.
+	contribsWith := ComputeReflections(src, mic, room, 1, 48000, []scene.Gobo{gobo})
+	ampWith := 0.0
+	for _, c := range contribsWith {
+		ampWith += c.Amplitude
+	}
+
+	assert.Less(t, ampWith, ampWithout, "gobo should reduce total amplitude of reflections")
+}

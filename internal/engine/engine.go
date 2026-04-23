@@ -48,7 +48,7 @@ func Run(cfg Config) error {
 			contributions := []acoustics.PathContribution{acoustics.ComputeDirect(src, mic, sampleRate, nil)}
 			if cfg.ReflectionOrder > 0 {
 				contributions = append(contributions,
-					acoustics.ComputeReflections(src, mic, s.Room, cfg.ReflectionOrder, sampleRate)...)
+					acoustics.ComputeReflections(src, mic, s.Room, cfg.ReflectionOrder, sampleRate, s.Gobos)...)
 			}
 			ir := acoustics.AssembleIR(contributions, lengthSamples)
 
