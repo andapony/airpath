@@ -153,7 +153,7 @@ func TestRunSmallRoom_TailChangesOutput(t *testing.T) {
 		ScenePath:       "../../examples/small_room.json",
 		OutputDir:       outWithTail,
 		Duration:        1.0,
-		ReflectionOrder: 1,
+		ReflectionOrder: 4,
 		TailEnabled:     true,
 		TailOnset:       0.08,
 	}))
@@ -163,7 +163,7 @@ func TestRunSmallRoom_TailChangesOutput(t *testing.T) {
 		ScenePath:       "../../examples/small_room.json",
 		OutputDir:       outNoTail,
 		Duration:        1.0,
-		ReflectionOrder: 1,
+		ReflectionOrder: 4,
 		TailEnabled:     false,
 	}))
 

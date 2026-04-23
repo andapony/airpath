@@ -75,8 +75,7 @@ func Run(cfg Config) error {
 }
 
 // mixReverbTail generates and mixes a reverb tail into ir, scaling it to match
-// the IR energy in the ±20 ms window around the tail onset. If the window has
-// no energy, uses RMS of the peak region of the IR instead.
+// the IR energy in the ±20 ms window around the tail onset.
 func mixReverbTail(ir []float64, room scene.Room, sampleRate, lengthSamples, tailOnsetSamples int) []float64 {
 	window := sampleRate / 50 // 20 ms
 	wStart := tailOnsetSamples - window
@@ -93,20 +92,6 @@ func mixReverbTail(ir []float64, room scene.Room, sampleRate, lengthSamples, tai
 		sumSq += v * v
 	}
 	tailScale := math.Sqrt(sumSq / float64(wEnd-wStart))
-
-	// If the tail onset window has essentially no energy, use the peak region energy
-	if tailScale < 1e-10 {
-		// Use energy from the first 50ms (where direct and early reflections are)
-		peakEnd := sampleRate / 20 // 50 ms
-		if peakEnd > lengthSamples {
-			peakEnd = lengthSamples
-		}
-		var peakSumSq float64
-		for _, v := range ir[0:peakEnd] {
-			peakSumSq += v * v
-		}
-		tailScale = math.Sqrt(peakSumSq / float64(peakEnd))
-	}
 
 	tail := acoustics.GenerateReverbTail(room, sampleRate, lengthSamples, tailOnsetSamples)
 	for i, v := range tail {
