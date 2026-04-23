@@ -7,7 +7,7 @@ Go CLI tool that computes impulse response (IR) WAV files for simulated acoustic
 ```bash
 go build ./cmd/airpath
 go test ./...
-./airpath generate -scene examples/small_room.json -output ./output/
+./airpath generate --scene examples/small_room.json --output ./output/
 ```
 
 ## Architecture

@@ -8,16 +8,16 @@ The primary use case is loading these IRs into a DAW for offline convolution aga
 
 ```bash
 # Generate IRs from a scene description
-airpath generate -scene scene.json -output ./output/ [-order 4] [-samplerate 48000] [-tail]
+airpath generate --scene scene.json --output ./output/ [--order 4] [--samplerate 48000] [--tail]
 
 # Print room analysis (RT60, modes, path counts)
-airpath info -scene scene.json
+airpath info --scene scene.json
 
 # List available materials and absorption coefficients
 airpath materials
 
 # Validate a scene file without generating output
-airpath validate -scene scene.json
+airpath validate --scene scene.json
 ```
 
 Output files are named `{source_id}_to_{mic_id}.wav`, one per source-mic pair, plus a `report.txt` summary.
