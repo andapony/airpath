@@ -48,6 +48,17 @@ Three-layer pipeline: `scene.json → [parser] → [acoustic engine] → [WAV wr
 
 **Air absorption:** `exp(-α(f) * d)` — α ≈ 0.001/m at 1kHz, 0.01/m at 4kHz, 0.03/m at 8kHz
 
+## Development Workflow
+
+When executing implementation plans, always use `superpowers:subagent-driven-development`. Dispatch one subagent per task rather than implementing inline.
+
+**Model selection — use the least capable model that can handle the task:**
+- Mechanical implementation (isolated functions, clear spec, 1–2 files): `haiku`
+- Multi-file integration or tasks requiring judgment: `sonnet`
+- Architecture, design, and spec/quality review: `sonnet`
+
+This conserves tokens without sacrificing quality on tasks that don't need it.
+
 ## Full Plan
 
 See `docs/airpath-development-plan.md` for complete scene format spec, algorithm reference, and validation criteria per milestone.
