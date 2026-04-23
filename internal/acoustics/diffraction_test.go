@@ -103,6 +103,27 @@ func TestMirrorGoboFloorCeiling(t *testing.T) {
 	assert.False(t, ok, "ceiling wall should return ok=false")
 }
 
+func TestMirrorGoboWestWall(t *testing.T) {
+	// Gobo at x ∈ [2,3] mirrored across west wall x=0: x ∈ [-3,-2].
+	g := scene.Gobo{X1: 2.0, Y1: 1.0, X2: 3.0, Y2: 1.0, Height: 2.0}
+	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
+	m, ok := mirrorGoboAcrossWall(g, wallWest, room)
+	assert.True(t, ok)
+	assert.InDelta(t, -2.0, m.X1, 1e-9)
+	assert.InDelta(t, -3.0, m.X2, 1e-9)
+	assert.Equal(t, g.Y1, m.Y1)
+}
+
+func TestMirrorGoboSouthWall(t *testing.T) {
+	// Gobo at y ∈ [1,2] mirrored across south wall y=0: y ∈ [-2,-1].
+	g := scene.Gobo{X1: 1.0, Y1: 1.0, X2: 1.0, Y2: 2.0, Height: 2.0}
+	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
+	m, ok := mirrorGoboAcrossWall(g, wallSouth, room)
+	assert.True(t, ok)
+	assert.InDelta(t, -1.0, m.Y1, 1e-9)
+	assert.InDelta(t, -2.0, m.Y2, 1e-9)
+}
+
 func TestEffectiveGobos(t *testing.T) {
 	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
 	gobos := []scene.Gobo{testGobo}
