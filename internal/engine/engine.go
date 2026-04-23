@@ -45,7 +45,7 @@ func Run(cfg Config) error {
 
 	for _, src := range s.Sources {
 		for _, mic := range s.Mics {
-			contributions := []acoustics.PathContribution{acoustics.ComputeDirect(src, mic, sampleRate, nil)}
+			contributions := []acoustics.PathContribution{acoustics.ComputeDirect(src, mic, sampleRate, s.Gobos)}
 			if cfg.ReflectionOrder > 0 {
 				contributions = append(contributions,
 					acoustics.ComputeReflections(src, mic, s.Room, cfg.ReflectionOrder, sampleRate, s.Gobos)...)
