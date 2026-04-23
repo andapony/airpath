@@ -197,4 +197,28 @@ func TestGoboAttenuatesReflection(t *testing.T) {
 	}
 
 	assert.Less(t, ampWith, ampWithout, "gobo should reduce total amplitude of reflections")
+
+	// Also verify the east-wall reflection is individually attenuated.
+	// The east-wall image source (source X=2, room W=10) is at X=18.
+	// Its distance to mic at (7,4,1) ≈ 11.18m → delay ≈ 1565 samples.
+	// Find the contribution whose delay is closest to 1565 in the no-gobo set.
+	targetDelay := 1565
+	bestDelay := -1
+	for _, c := range contribsWithout {
+		if bestDelay < 0 || iabs(c.DelaySamples-targetDelay) < iabs(bestDelay-targetDelay) {
+			bestDelay = c.DelaySamples
+		}
+	}
+	var ampWithoutEast, ampWithEast float64
+	for _, c := range contribsWithout {
+		if c.DelaySamples == bestDelay {
+			ampWithoutEast += c.Amplitude
+		}
+	}
+	for _, c := range contribsWith {
+		if c.DelaySamples == bestDelay {
+			ampWithEast += c.Amplitude
+		}
+	}
+	assert.Less(t, ampWithEast, ampWithoutEast, "east-wall reflection should be individually attenuated")
 }
