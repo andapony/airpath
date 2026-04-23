@@ -144,3 +144,20 @@ func TestEffectiveGobos(t *testing.T) {
 		assert.Len(t, effective, 1, "expected original gobos only for higher-order reflection")
 	})
 }
+
+func TestGoboAttenuatesDirect(t *testing.T) {
+	// Guitar source at (1.5,1.0,1.2), room mic at (2.5,3.5,1.8).
+	// The direct path crosses y=2 at x≈1.9, z≈1.44 — within testGobo bounds.
+	src := scene.Source{ID: "s", X: 1.5, Y: 1.0, Z: 1.2}
+	mic := scene.Mic{
+		ID:      "m",
+		X:       2.5, Y: 3.5, Z: 1.8,
+		Aim:     scene.Aim{Azimuth: 180, Elevation: 0},
+		Pattern: "omni",
+	}
+	without := ComputeDirect(src, mic, 48000, nil)
+	with := ComputeDirect(src, mic, 48000, []scene.Gobo{testGobo})
+
+	assert.Less(t, with.Amplitude, without.Amplitude, "gobo should reduce amplitude")
+	assert.Equal(t, without.DelaySamples, with.DelaySamples, "gobo should not affect delay")
+}

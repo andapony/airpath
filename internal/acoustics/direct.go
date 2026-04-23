@@ -13,7 +13,7 @@ const (
 )
 
 // ComputeDirect computes the direct line-of-sight path contribution from src to mic.
-func ComputeDirect(src scene.Source, mic scene.Mic, sampleRate int) PathContribution {
+func ComputeDirect(src scene.Source, mic scene.Mic, sampleRate int, gobos []scene.Gobo) PathContribution {
 	srcPos := geometry.Vec3{X: src.X, Y: src.Y, Z: src.Z}
 	micPos := geometry.Vec3{X: mic.X, Y: mic.Y, Z: mic.Z}
 
@@ -34,8 +34,11 @@ func ComputeDirect(src scene.Source, mic scene.Mic, sampleRate int) PathContribu
 	sourceDir := srcPos.Sub(micPos).Normalize()
 	polar := PolarGain(mic.Pattern, mic.Aim.Azimuth, mic.Aim.Elevation, sourceDir)
 
+	// Gobo diffraction attenuation.
+	diffraction := DiffractionScalar(srcPos, micPos, gobos)
+
 	return PathContribution{
 		DelaySamples: delaySamples,
-		Amplitude:    amplitude * airScalar * polar,
+		Amplitude:    amplitude * airScalar * polar * diffraction,
 	}
 }
