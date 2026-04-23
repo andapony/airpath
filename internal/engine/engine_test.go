@@ -146,3 +146,31 @@ func TestRunSmallRoom_GoboChangesOutput(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, withBytes, withoutBytes, "guitar_to_room.wav should differ when gobo is present")
 }
+
+func TestRunSmallRoom_TailChangesOutput(t *testing.T) {
+	outWithTail := t.TempDir()
+	require.NoError(t, Run(Config{
+		ScenePath:       "../../examples/small_room.json",
+		OutputDir:       outWithTail,
+		Duration:        1.0,
+		ReflectionOrder: 1,
+		TailEnabled:     true,
+		TailOnset:       0.08,
+	}))
+
+	outNoTail := t.TempDir()
+	require.NoError(t, Run(Config{
+		ScenePath:       "../../examples/small_room.json",
+		OutputDir:       outNoTail,
+		Duration:        1.0,
+		ReflectionOrder: 1,
+		TailEnabled:     false,
+	}))
+
+	withBytes, err := os.ReadFile(filepath.Join(outWithTail, "guitar_to_room.wav"))
+	require.NoError(t, err)
+	withoutBytes, err := os.ReadFile(filepath.Join(outNoTail, "guitar_to_room.wav"))
+	require.NoError(t, err)
+	assert.NotEqual(t, withBytes, withoutBytes,
+		"guitar_to_room.wav should differ when tail is enabled")
+}
