@@ -161,6 +161,51 @@ Omni is the simplest: `cos(θ)` cancels out and sensitivity is the same in every
 
 The aim direction is set in the scene file as azimuth (0° = north/+Y, 90° = east/+X, clockwise) and elevation (0° = horizontal, positive = upward). airpath converts this to a unit vector and computes cos(θ) via the dot product with the direction of each incoming path.
 
+### Gobo Occlusion and Diffraction
+
+A *gobo* (short for "go-between") is a portable acoustic panel placed in a room to block sound paths between a source and a microphone. A drum screen between the kit and a guitar amp is a typical example. airpath models gobos as vertical flat rectangles. Each gobo is defined by two floor-plan coordinates — `(x1, y1)` and `(x2, y2)` — that describe the panel's footprint, plus a `height` measured from the floor.
+
+#### Intersection Test
+
+For each acoustic path — direct or reflected — airpath checks whether the line segment from source to mic (or from image source to mic) intersects the gobo panel.
+
+The test works by decomposing the problem into three independent checks:
+
+1. **Plane crossing.** Compute the outward normal of the gobo's footprint line, then find the parameter `t ∈ [0, 1]` at which the path segment crosses that vertical plane. If the segment is parallel to the plane, or `t` falls outside `[0, 1]`, there is no intersection.
+
+2. **Horizontal extent.** At the crossing point, project onto the footprint direction and compute a parameter `s ∈ [0, 1]`. If `s` is outside that range the path misses the panel left or right.
+
+3. **Vertical extent.** Check that the crossing point's height is between 0 and the gobo's height. Paths that clear the top are not blocked.
+
+All three conditions must be true for the path to be occluded.
+
+#### Maekawa Diffraction
+
+When a path is blocked, the sound is not silenced — it bends around the top edge of the gobo and arrives at the microphone with reduced amplitude. This is *diffraction*, and airpath models it with the Maekawa barrier formula, a standard empirical approximation used in architectural acoustics:
+
+```
+δ = |source → D| + |D → mic| − |source → mic|
+N = 2δ / λ      (λ = 343 / 1000 = 0.343 m at 1 kHz)
+attenuation_dB ≈ 10 × log10(3 + 20N)
+scalar = 10^(−attenuation_dB / 20)
+```
+
+Here `D` is the *diffraction point* — the spot on the top edge of the gobo directly above where the blocked path would have crossed the panel's footprint. The quantity `δ` is the extra distance the diffracted wave must travel compared to the straight-line path that the gobo blocked. A longer detour means more attenuation.
+
+`N` is the *Fresnel number*, a dimensionless measure of how deeply the listener sits in the acoustic shadow. At the geometric shadow boundary (path grazing the edge, `δ → 0`) the formula gives about 5 dB of attenuation — even at the edge, diffraction softens but does not eliminate the sound. At `N = 1` (a modest detour) attenuation is around 13 dB; at `N = 10` around 23 dB.
+
+The formula is evaluated at 1 kHz as a mid-band approximation, and the resulting amplitude scalar is applied to the entire path contribution. Per-octave-band diffraction (which would produce the characteristic low-frequency bleed and high-frequency shadow of a real gobo) is planned for Milestone 5 alongside full FIR filtering.
+
+When multiple gobos block the same path, their scalars multiply.
+
+#### Reflected Paths and the Mirrored-Gobo Technique
+
+Applying the intersection test to reflected paths requires care. The image-source method represents a reflection as a straight segment from an image source (outside the room) to the microphone. Testing this segment against in-room gobos only covers the *mic-side leg* of the path — from the reflection point to the microphone. It misses the *source-side leg* — from the source to the reflection point.
+
+airpath handles 1st-order reflections with a mirrored-gobo technique. For each 1st-order image source, every gobo in the room is mirrored across the same wall that created the image source. The mirrored gobo lands in image space at the same offset outside the room. The image-source-to-mic segment then intercepts this mirrored gobo at precisely the point where the real reflected path would have intercepted the real gobo — so a single intersection test covers both legs without any changes to the reflection geometry.
+
+For 2nd-order and higher reflections, only the mic-side leg is tested. Full source-side coverage at higher orders requires tracking the ordered sequence of walls for each image source, which is not yet implemented.
+
 ### Model Limitations
 
 **Phase changes at surfaces.** When sound reflects off a surface, the surface's acoustic impedance can shift the phase of the reflected wave. airpath's amplitude values are real scalars — there is no phase rotation per bounce. For typical hard surfaces (concrete, brick, drywall) this is a reasonable approximation, since those materials are close to the rigid limit and reflect with little phase shift. It becomes inaccurate for soft or resonant surfaces, grazing-angle incidence, or any situation where impedance mismatch is significant. A more complete model would use complex-valued per-band amplitudes, which is a prerequisite for the per-band FIR filtering planned for Milestone 5.
@@ -185,7 +230,7 @@ What the model gets wrong is the polar pattern. A real PZM is sensitive only to 
 
 **Reflections:** Image-source method up to configurable order (default: 4).
 
-**Gobo attenuation:** Maekawa barrier approximation, applied per frequency band.
+**Gobo attenuation:** Maekawa barrier approximation at 1 kHz mid-band scalar.
 
 **Late reverb:** Sabine RT60 — `RT60 = 0.161 * V / A` — shapes a noise-based exponential decay tail.
 
