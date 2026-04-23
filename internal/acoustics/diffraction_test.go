@@ -68,3 +68,58 @@ func TestDiffractionScalarMultiple(t *testing.T) {
 	two := DiffractionScalar(a, b, []scene.Gobo{testGobo, gobo2})
 	assert.Less(t, two, one, "two blocking gobos must attenuate more than one")
 }
+
+func TestMirrorGoboEastWall(t *testing.T) {
+	// Gobo at x ∈ [2,3] mirrored across east wall x=10: x ∈ [17,18].
+	g := scene.Gobo{X1: 2.0, Y1: 1.0, X2: 3.0, Y2: 1.0, Height: 2.0}
+	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
+	m, ok := mirrorGoboAcrossWall(g, wallEast, room)
+	assert.True(t, ok)
+	assert.InDelta(t, 18.0, m.X1, 1e-9) // 2*10 - 2
+	assert.InDelta(t, 17.0, m.X2, 1e-9) // 2*10 - 3
+	assert.Equal(t, g.Y1, m.Y1)
+	assert.Equal(t, g.Y2, m.Y2)
+	assert.Equal(t, g.Height, m.Height)
+}
+
+func TestMirrorGoboNorthWall(t *testing.T) {
+	// Gobo at y ∈ [1,2] mirrored across north wall y=8: y ∈ [14,15].
+	g := scene.Gobo{X1: 1.0, Y1: 1.0, X2: 1.0, Y2: 2.0, Height: 2.0}
+	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
+	m, ok := mirrorGoboAcrossWall(g, wallNorth, room)
+	assert.True(t, ok)
+	assert.InDelta(t, 15.0, m.Y1, 1e-9) // 2*8 - 1
+	assert.InDelta(t, 14.0, m.Y2, 1e-9) // 2*8 - 2
+}
+
+func TestMirrorGoboFloorCeiling(t *testing.T) {
+	// Floor and ceiling walls return ok=false — gobos are vertical panels
+	// that don't interact meaningfully with floor/ceiling image geometry.
+	g := scene.Gobo{X1: 1.0, Y1: 1.0, X2: 3.0, Y2: 1.0, Height: 2.0}
+	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
+	_, ok := mirrorGoboAcrossWall(g, wallFloor, room)
+	assert.False(t, ok, "floor wall should return ok=false")
+	_, ok = mirrorGoboAcrossWall(g, wallCeiling, room)
+	assert.False(t, ok, "ceiling wall should return ok=false")
+}
+
+func TestEffectiveGobos(t *testing.T) {
+	room := scene.Room{Width: 10.0, Depth: 8.0, Height: 3.0}
+	gobos := []scene.Gobo{testGobo}
+
+	t.Run("first order returns original plus mirrored", func(t *testing.T) {
+		// wallHits[wallEast]=1 → sum=1 → 1st order east reflection
+		img := imageSource{wallHits: [6]int{wallEast: 1}}
+		effective := effectiveGobos(img, gobos, room)
+		assert.Len(t, effective, 2, "expected original + mirrored gobo")
+	})
+
+	t.Run("higher order returns originals only", func(t *testing.T) {
+		// wallHits[wallEast]=1, wallHits[wallNorth]=1 → sum=2 → 2nd order
+		img := imageSource{}
+		img.wallHits[wallEast] = 1
+		img.wallHits[wallNorth] = 1
+		effective := effectiveGobos(img, gobos, room)
+		assert.Len(t, effective, 1, "expected original gobos only for higher-order reflection")
+	})
+}

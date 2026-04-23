@@ -124,3 +124,73 @@ func DiffractionScalar(a, b geometry.Vec3, gobos []scene.Gobo) float64 {
 	}
 	return scalar
 }
+
+// mirrorGoboAcrossWall returns a copy of g with its footprint coordinates
+// reflected across the given wall plane. Returns ok=false for floor and
+// ceiling walls, which don't interact meaningfully with vertical gobo geometry.
+func mirrorGoboAcrossWall(g scene.Gobo, wall int, room scene.Room) (scene.Gobo, bool) {
+	m := g
+	switch wall {
+	case wallWest:
+		m.X1, m.X2 = -g.X1, -g.X2
+	case wallEast:
+		m.X1, m.X2 = 2*room.Width-g.X1, 2*room.Width-g.X2
+	case wallSouth:
+		m.Y1, m.Y2 = -g.Y1, -g.Y2
+	case wallNorth:
+		m.Y1, m.Y2 = 2*room.Depth-g.Y1, 2*room.Depth-g.Y2
+	default:
+		return scene.Gobo{}, false
+	}
+	return m, true
+}
+
+// effectiveGobos returns the gobos to test against the image-source-to-mic
+// segment for img.
+//
+// For 1st-order reflections (sum(wallHits) == 1), each gobo is also mirrored
+// across the hit wall. The mirrored copy lands in image space (outside the
+// room) and intercepts the image-source-to-mic segment exactly where the real
+// reflected path would be blocked on the source-to-reflection-point leg.
+// For higher-order reflections, only the original gobos are tested (covering
+// the reflection-point-to-mic leg only).
+//
+// Limitations:
+//   - 2nd-order and higher: only the mic-side leg is tested. Full coverage
+//     requires tracking the ordered wall sequence, not just per-wall counts.
+//   - Floor/ceiling reflections: excluded from mirroring.
+//
+// TODO: To support full gobo occlusion at all reflection orders, change
+// imageSource.wallHits from a [6]int count array to a []int ordered wall
+// sequence. With the sequence: (1) reconstruct each intermediate reflection
+// point by intersecting the image-source-to-mic line with each wall in order;
+// (2) test each sub-segment against appropriately mirrored gobos for that leg.
+//
+// TODO: For 2nd-order same-wall double-bounce (e.g. east→east), mirroring
+// the gobo twice across the same axis is well-defined without ordered sequence
+// tracking. The double-mirror places the gobo at an additional offset of
+// 2*(W - gobo_x) further out, covering flutter-echo geometry.
+func effectiveGobos(img imageSource, gobos []scene.Gobo, room scene.Room) []scene.Gobo {
+	total := 0
+	for _, h := range img.wallHits {
+		total += h
+	}
+	if total != 1 {
+		return gobos
+	}
+	hitWall := -1
+	for i, h := range img.wallHits {
+		if h > 0 {
+			hitWall = i
+			break
+		}
+	}
+	result := make([]scene.Gobo, len(gobos), len(gobos)*2)
+	copy(result, gobos)
+	for _, g := range gobos {
+		if mirrored, ok := mirrorGoboAcrossWall(g, hitWall, room); ok {
+			result = append(result, mirrored)
+		}
+	}
+	return result
+}
