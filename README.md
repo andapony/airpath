@@ -8,7 +8,7 @@ The primary use case is loading these IRs into a DAW for offline convolution aga
 
 ```bash
 # Generate IRs from a scene description
-airpath generate --scene scene.json --output ./output/ [--order 4] [--samplerate 48000] [--tail]
+airpath generate --scene scene.json --output ./output/ [--order 4] [--samplerate 48000] [--tail] [--tail-onset 0.08]
 
 # Print room analysis (RT60, modes, path counts)
 airpath info --scene scene.json
@@ -205,6 +205,51 @@ Applying the intersection test to reflected paths requires care. The image-sourc
 airpath handles 1st-order reflections with a mirrored-gobo technique. For each 1st-order image source, every gobo in the room is mirrored across the same wall that created the image source. The mirrored gobo lands in image space at the same offset outside the room. The image-source-to-mic segment then intercepts this mirrored gobo at precisely the point where the real reflected path would have intercepted the real gobo — so a single intersection test covers both legs without any changes to the reflection geometry.
 
 For 2nd-order and higher reflections, only the mic-side leg is tested. Full source-side coverage at higher orders requires tracking the ordered sequence of walls for each image source, which is not yet implemented.
+
+### Late Reverb Tail
+
+The image-source method produces discrete early reflections but not the dense, diffuse reverb tail that characterises a real room. At some point after the early reflections — typically 50–100 ms in a small room — the reflection density becomes so high that individual echoes are no longer distinguishable, and the room transitions to a diffuse field: energy arriving from all directions with no coherent structure. airpath appends a synthetic tail to model this region.
+
+#### Sabine RT60
+
+The decay rate of the tail is derived from the room's *RT60* — the time for sound energy to fall by 60 dB after a source stops. airpath computes RT60 from the Sabine equation:
+
+```
+RT60 = 0.161 × V / A
+```
+
+where V is the room volume (m³) and A is the total *absorption area*:
+
+```
+A = Σ (surface area × α)
+```
+
+summed over all six walls. The absorption coefficient α is taken at the 1 kHz mid-band, consistent with the scalar absorption used throughout the early-reflection model. A concrete room with α ≈ 0.02 on every surface might have RT60 > 3 s; a heavily treated room (α > 0.70 on most surfaces) might have RT60 < 0.3 s.
+
+#### Generating the Tail
+
+The synthetic tail is built in four steps:
+
+1. **Gaussian noise.** White noise is generated for the tail region using the Box-Muller transform. A fixed random seed ensures deterministic output across runs.
+
+2. **Exponential decay.** Each sample is multiplied by an envelope that reaches exactly −60 dB at t = RT60:
+
+   ```
+   envelope(n) = exp(−ln(1000) × n / (RT60 × sampleRate))
+   ```
+
+3. **One-pole HF rolloff.** High frequencies decay faster than low frequencies in real rooms — air absorption and surface losses accumulate more quickly at high frequencies. A leaky integrator (~3 kHz cutoff) is applied in-place to simulate this:
+
+   ```
+   α = 1 − exp(−2π × 3000 / sampleRate)
+   y[n] = α × x[n] + (1 − α) × y[n−1]
+   ```
+
+4. **Raised-cosine fade-in and normalisation.** A 20 ms fade-in prevents a click at the tail onset. The tail is then normalised so its RMS over the first 20 ms equals 1.0 — the engine applies a per-pair gain at mix time.
+
+#### Onset and Per-Pair Amplitude Scaling
+
+The tail begins at a configurable onset time (default 80 ms, set with `--tail-onset`). Before mixing the tail into the assembled IR, the engine measures the RMS of the IR in a ±20 ms window around the onset time. This RMS becomes the tail's mix gain, so the tail amplitude matches the late early-reflection energy of that specific source-mic pair: close sources with strong late reflections get a louder tail; lightly absorbed rooms with sparse late reflections get a quieter one. If the IR is silent at the onset (for example, with `--order 0`), the tail mixes in at zero gain — acoustically correct, since there is no energy to seed the diffuse field.
 
 ### Model Limitations
 
