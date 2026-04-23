@@ -57,3 +57,70 @@ func goboIntersects(a, b geometry.Vec3, g scene.Gobo) (hit bool, s float64) {
 	}
 	return true, s
 }
+
+// diffractionScalarSingle returns the Maekawa amplitude scalar [0,1] for a
+// single gobo blocking segment A→B. Returns 1.0 if the gobo does not
+// block the path.
+//
+// The diffraction point D is placed on the top edge of the gobo directly
+// above the footprint crossing (standard first-order diffraction approximation).
+// The Fresnel number N is evaluated at 1 kHz — a mid-band scalar that defers
+// full per-octave-band treatment to M5 alongside per-band FIR filtering.
+//
+// Maekawa formula: attenuation_dB ≈ 10·log10(3 + 20·N), N = 2δ/λ
+// where δ = |A→D| + |D→B| - |A→B| (extra path length of the diffracted route)
+// and λ = c/f is the wavelength at 1 kHz.
+//
+// Characteristic values: N=0 (grazing) → 4.8 dB; N=1 → 13 dB; N=10 → 23 dB.
+//
+// References:
+//   Maekawa (1968) Applied Acoustics 1(3):157–173 (original empirical formula).
+//   Kuttruff, Room Acoustics 5th ed. §4.4 (derivation and worked examples).
+//   Cowan, Architectural Acoustics Design Guide §6.3 (practical application).
+// Accurate to ~2 dB for N > 0; standard for barrier insertion-loss estimation.
+//
+// TODO: Only over-the-top diffraction is modelled (D on the top edge). For
+// better accuracy on paths that graze the vertical end edges, compute δ for
+// the left end vertex, the right end vertex, and the top edge, then take the
+// minimum across all three. This covers narrow gobos and low-angle paths.
+//
+// TODO: Gobos are currently treated as acoustically opaque (transmission
+// loss = ∞). Real gobos have finite TL (typically 15–30 dB for plywood or
+// rockwool, worse at low frequencies). To add material transparency:
+//   1. Add a TL [7]float64 table to the material library alongside Absorption.
+//   2. Per blocked path, compute Maekawa attenuation and TL per octave band.
+//   3. Combine as incoherent energy sum: sqrt(10^(-TL/10) + Maekawa_linear²),
+//      converted to an amplitude scalar.
+// Deferred until PathContribution carries per-band gains (M5).
+func diffractionScalarSingle(a, b geometry.Vec3, g scene.Gobo) float64 {
+	hit, s := goboIntersects(a, b, g)
+	if !hit {
+		return 1.0
+	}
+	// Diffraction point D: top edge at footprint parameter s.
+	d := geometry.Vec3{
+		X: g.X1 + s*(g.X2-g.X1),
+		Y: g.Y1 + s*(g.Y2-g.Y1),
+		Z: g.Height,
+	}
+	// Path length difference δ = detour over the top edge vs. direct blocked path.
+	delta := d.Sub(a).Length() + b.Sub(d).Length() - b.Sub(a).Length()
+	if delta < 0 {
+		delta = 0 // guard against floating-point underflow
+	}
+	lambda := speedOfSound / 1000.0 // wavelength at 1 kHz (mid-band)
+	N := 2 * delta / lambda
+	attenDB := 10 * math.Log10(3+20*N)
+	return math.Pow(10, -attenDB/20)
+}
+
+// DiffractionScalar returns the cumulative Maekawa amplitude attenuation [0,1]
+// for segment A→B due to all intersecting gobos. Returns 1.0 when gobos is
+// nil or empty, or when no gobo blocks the path.
+func DiffractionScalar(a, b geometry.Vec3, gobos []scene.Gobo) float64 {
+	scalar := 1.0
+	for _, g := range gobos {
+		scalar *= diffractionScalarSingle(a, b, g)
+	}
+	return scalar
+}
