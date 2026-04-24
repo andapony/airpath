@@ -59,6 +59,21 @@ All non-trivial or non-obvious code must have inline comments explaining *why*, 
 
 Obvious one-liners (simple getters, trivial arithmetic, standard library calls) do not need inline comments.
 
+## Commit Message Requirements
+
+Every commit must have a meaningful message consisting of:
+1. A header line in conventional commit format: `<type>: <description>` — e.g. `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
+2. A blank line.
+3. At least one paragraph of body text explaining the context: what problem this solves, why this approach was chosen, or any non-obvious constraints a reader would need to understand the change.
+
+The header must be specific enough to identify the change at a glance. The body must add information that isn't already obvious from the diff — motivation, trade-offs, edge cases addressed, or deferred work. All lines (header and body) must be word-wrapped at 72 characters.
+
+Good header: `fix: clamp tailScale to zero when onset window has no energy`
+Bad header: `fix bug`, `update code`, `changes`
+
+Good body: `The ±20 ms onset window can fall entirely between reflections in sparse IRs (e.g. direct-only at order 0). Previously the zero RMS produced a NaN tailScale via 0/0. Clamping to zero is acoustically correct — no measured energy means no tail to match.`
+Bad body: `Fixed the issue.`, `Updated as requested.`
+
 ## Development Workflow
 
 When executing implementation plans, always use `superpowers:subagent-driven-development`. Dispatch one subagent per task rather than implementing inline.
