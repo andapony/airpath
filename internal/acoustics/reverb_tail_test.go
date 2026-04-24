@@ -10,6 +10,9 @@ import (
 	"github.com/andapony/airpath/internal/scene"
 )
 
+// TestSabineRT60_KnownRoom computes the Sabine RT60 for the small_room.json
+// dimensions and surface materials, then checks the result against the
+// hand-calculated value (V=56 m³, A=18.12 m² → RT60≈0.4976 s).
 func TestSabineRT60_KnownRoom(t *testing.T) {
 	// 5×4×2.8 m room matching examples/small_room.json
 	room := scene.Room{
@@ -33,6 +36,9 @@ func TestSabineRT60_KnownRoom(t *testing.T) {
 	assert.InDelta(t, expected, got, 0.001)
 }
 
+// TestSabineRT60_HighAbsorption verifies the direction of the RT60 response:
+// a room lined with highly absorptive foam (α=0.80) must have a shorter RT60
+// than the same room lined with brick (α=0.04).
 func TestSabineRT60_HighAbsorption(t *testing.T) {
 	room := scene.Room{Width: 4.0, Depth: 5.0, Height: 3.0}
 	// acoustic_foam α_1kHz = 0.80; brick α_1kHz = 0.04
@@ -56,6 +62,9 @@ func TestSabineRT60_HighAbsorption(t *testing.T) {
 	require.Positive(t, rt60Brick)
 }
 
+// TestGenerateReverbTail_Length verifies that the returned buffer has exactly
+// lengthSamples entries and that all samples before tailOnsetSamples are zero
+// (the tail generator does not modify the pre-onset region).
 func TestGenerateReverbTail_Length(t *testing.T) {
 	room := scene.Room{
 		Width: 5.0, Depth: 4.0, Height: 2.8,
@@ -77,6 +86,9 @@ func TestGenerateReverbTail_Length(t *testing.T) {
 	}
 }
 
+// TestGenerateReverbTail_OnsetRMS verifies that the RMS of the 20 ms fade-in
+// window (the normalisation target) is approximately 1.0. The engine relies on
+// this invariant to correctly scale the tail by the IR energy at onset.
 func TestGenerateReverbTail_OnsetRMS(t *testing.T) {
 	room := scene.Room{
 		Width: 5.0, Depth: 4.0, Height: 2.8,
@@ -101,6 +113,11 @@ func TestGenerateReverbTail_OnsetRMS(t *testing.T) {
 	assert.InDelta(t, 1.0, rms, 0.1, "onset RMS should be approximately 1.0")
 }
 
+// TestGenerateReverbTail_Decays verifies that the tail level at t=RT60 is at
+// least 55 dB below the post-ramp reference level (design target: −60 dB;
+// 5 dB allowance for IIR filter transients). Uses an all-plaster room
+// (α_1kHz=0.04) so RT60≈2.567 s — long enough that the 20 ms fade-in is
+// negligible when comparing the two measurement windows.
 func TestGenerateReverbTail_Decays(t *testing.T) {
 	// Use an all-plaster room: RT60 ≈ 2.57 s — long enough that the 20 ms
 	// fade-in is negligible when measuring the RT60 decay ratio.

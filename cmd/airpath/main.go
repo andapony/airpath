@@ -7,6 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// main builds the root Cobra command, registers sub-commands, and delegates to
+// cobra.Command.Execute, which parses os.Args and dispatches the appropriate
+// sub-command. Any error from Execute is printed to stderr and exits with code 1.
 func main() {
 	root := &cobra.Command{
 		Use:   "airpath",
@@ -22,6 +25,9 @@ func main() {
 	}
 }
 
+// newStubCmd returns a placeholder Cobra command that prints "not yet
+// implemented" and exits cleanly. Use this for commands planned in future
+// milestones so they appear in --help without being functional yet.
 func newStubCmd(use, short string) *cobra.Command {
 	return &cobra.Command{
 		Use:   use,

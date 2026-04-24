@@ -10,6 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestWriteWAVHeader verifies that the RIFF/WAVE header fields are written
+// with the correct values for a 32-bit IEEE float mono WAV file. Byte offsets
+// follow the standard WAV layout: RIFF chunk at 0, fmt sub-chunk at 12,
+// AudioFormat at 20, NumChannels at 22, SampleRate at 24, BitsPerSample at 34.
 func TestWriteWAVHeader(t *testing.T) {
 	samples := []float64{0.5, -0.5, 1.0, 0.0}
 	path := t.TempDir() + "/test.wav"
@@ -28,6 +32,9 @@ func TestWriteWAVHeader(t *testing.T) {
 	assert.Equal(t, uint16(32), binary.LittleEndian.Uint16(data[34:36]), "BitsPerSample should be 32")
 }
 
+// TestWriteWAVSamples verifies that sample values are written correctly as
+// little-endian float32 starting at byte offset 44 (after the 44-byte header).
+// Tolerance is 1e-6 to allow for the float64→float32 narrowing conversion.
 func TestWriteWAVSamples(t *testing.T) {
 	samples := []float64{0.5, -0.25}
 	path := t.TempDir() + "/samples.wav"
@@ -44,6 +51,8 @@ func TestWriteWAVSamples(t *testing.T) {
 	assert.InDelta(t, -0.25, float64(s1), 1e-6)
 }
 
+// TestWriteWAVFileSize verifies the total file size for 100 samples:
+// 44 header bytes + 100 samples × 4 bytes/sample = 444 bytes.
 func TestWriteWAVFileSize(t *testing.T) {
 	samples := make([]float64, 100)
 	path := t.TempDir() + "/size.wav"
@@ -52,6 +61,5 @@ func TestWriteWAVFileSize(t *testing.T) {
 
 	info, err := os.Stat(path)
 	require.NoError(t, err)
-	// 44 header bytes + 100 samples * 4 bytes each = 444
 	assert.Equal(t, int64(444), info.Size())
 }

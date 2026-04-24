@@ -8,8 +8,18 @@ import (
 )
 
 // SabineRT60 returns the estimated reverberation time (seconds) for room using
-// the Sabine equation at the 1 kHz mid-band: RT60 = 0.161 * V / A.
-// A = Σ(surface_area × α_1kHz) for all six surfaces.
+// the Sabine equation evaluated at the 1 kHz mid-band: RT60 = 0.161 × V / A,
+// where V is the room volume (m³) and A = Σ(surface_area × α_1kHz).
+//
+// Returns 0 when the total absorption area A is non-positive (e.g. all surfaces
+// are unknown materials, which default to α=0 — perfect reflectors).
+//
+// Limitations:
+//   - Single mid-band scalar: real RT60 varies by frequency.
+//   - Sabine assumes diffuse-field conditions (uniform absorption distribution).
+//     Rooms with strongly uneven absorption are better modelled with Eyring's formula.
+//   - Unknown materials are treated as α=0; the scene validator rejects them in
+//     practice, so this should only be reached in unit tests with ad-hoc rooms.
 func SabineRT60(room scene.Room) float64 {
 	V := room.Width * room.Depth * room.Height
 
@@ -36,13 +46,25 @@ func SabineRT60(room scene.Room) float64 {
 	return 0.161 * V / A
 }
 
-// GenerateReverbTail returns a buffer of lengthSamples with a synthetic reverb
-// tail beginning at tailOnsetSamples. Samples before tailOnsetSamples are zero.
+// GenerateReverbTail returns a buffer of lengthSamples with a synthetic diffuse
+// reverb tail beginning at tailOnsetSamples. All samples before tailOnsetSamples
+// are zero; the caller mixes this buffer into the assembled IR.
 //
-// The tail is shaped by the room's Sabine RT60 and a one-pole HF lowpass
-// (~3 kHz cutoff) to simulate faster high-frequency decay. A 20 ms raised-cosine
-// fade-in prevents a click at the onset. The onset window is normalized to RMS 1.0;
-// the engine scales each pair's tail by the IR energy at the onset time.
+// The tail is shaped as follows (see inline step comments):
+//  1. Gaussian white noise with a fixed seed (1) for reproducibility.
+//  2. Exponential decay envelope reaching −60 dB at t=RT60.
+//  3. One-pole IIR lowpass (~3 kHz) to simulate faster high-frequency decay.
+//  4. 20 ms raised-cosine fade-in to suppress the click at onset.
+//  5. RMS normalised to 1.0 over the 20 ms fade-in window so the engine can
+//     scale the tail to match the IR energy at the onset point.
+//
+// Returns an all-zero buffer when tailOnsetSamples >= lengthSamples or when
+// SabineRT60 returns 0 (all surfaces unknown — acoustically impossible room).
+//
+// Limitations:
+//   - Single-band decay: a full model would use per-octave-band RT60 values
+//     (deferred to M5 alongside per-band FIR filtering).
+//   - Monophonic: no decorrelation between source-mic pairs.
 func GenerateReverbTail(room scene.Room, sampleRate, lengthSamples, tailOnsetSamples int) []float64 {
 	buf := make([]float64, lengthSamples)
 	if tailOnsetSamples >= lengthSamples {

@@ -8,6 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestImageCoord checks the lattice coordinate formula for a selection of
+// positive and negative indices. Uses L=10, s=3:
+//   n=0 → 3 (real source); n=1 → 17 (mirror); n=-1 → -3; n=2 → 23; n=-2 → -17.
 func TestImageCoord(t *testing.T) {
 	assert.InDelta(t, 3.0, imageCoord(0, 10, 3), 1e-9)
 	assert.InDelta(t, 17.0, imageCoord(1, 10, 3), 1e-9)
@@ -16,6 +19,10 @@ func TestImageCoord(t *testing.T) {
 	assert.InDelta(t, -17.0, imageCoord(-2, 10, 3), 1e-9)
 }
 
+// TestAxisHits verifies the wall-bounce count formula for lattice indices −3
+// through +3. For each n, confirms (posWall, negWall) match the expected values
+// derived from ⌈|n|/2⌉ and ⌊|n|/2⌋ with the sign determining which side is
+// dominant.
 func TestAxisHits(t *testing.T) {
 	tests := []struct {
 		n       int
@@ -37,6 +44,10 @@ func TestAxisHits(t *testing.T) {
 	}
 }
 
+// TestReflectionScalar exercises the absorption product formula across the key
+// edge cases: no hits (scalar=1), perfect absorber (scalar=0), perfect reflector
+// (scalar=1), repeated hits at a partial absorber, and two walls with different
+// absorption coefficients.
 func TestReflectionScalar(t *testing.T) {
 	var noHits [6]int
 	var noAlpha [6]float64
@@ -69,6 +80,8 @@ func TestReflectionScalar(t *testing.T) {
 	assert.InDelta(t, 0.375, reflectionScalar(hits, alphas), 1e-9)
 }
 
+// TestEnumerateImageSources_Order0 confirms that maxOrder=0 yields no image
+// sources (the real source at lattice index (0,0,0) is always excluded).
 func TestEnumerateImageSources_Order0(t *testing.T) {
 	src := scene.Source{X: 2, Y: 2, Z: 1}
 	room := scene.Room{Width: 10, Depth: 8, Height: 4}
@@ -76,6 +89,8 @@ func TestEnumerateImageSources_Order0(t *testing.T) {
 	assert.Empty(t, imgs)
 }
 
+// TestEnumerateImageSources_Order1Count verifies that maxOrder=1 produces
+// exactly 6 image sources — one per room face (±x, ±y, ±z).
 func TestEnumerateImageSources_Order1Count(t *testing.T) {
 	src := scene.Source{X: 2, Y: 2, Z: 1}
 	room := scene.Room{Width: 10, Depth: 8, Height: 4}
@@ -83,6 +98,9 @@ func TestEnumerateImageSources_Order1Count(t *testing.T) {
 	assert.Len(t, imgs, 6)
 }
 
+// TestEnumerateImageSources_EastWallImage checks the position and wall-hit
+// counts of the east-wall first-order image (lattice index p=1, q=0, r=0).
+// imageCoord(1, 10, 2) = 18; y and z are unchanged. axisHits(1) → eastHits=1.
 func TestEnumerateImageSources_EastWallImage(t *testing.T) {
 	// image (p=1, q=0, r=0): source at (2,2,1) in 10×8×4 room
 	// imageCoord(1, 10, 2) = 18; y and z unchanged
@@ -109,6 +127,8 @@ func TestEnumerateImageSources_EastWallImage(t *testing.T) {
 	assert.True(t, found, "expected image source at (18, 2, 1)")
 }
 
+// TestComputeReflections_Order0 confirms that maxOrder=0 returns nil — no
+// reflected paths are computed when only the direct path is requested.
 func TestComputeReflections_Order0(t *testing.T) {
 	src := scene.Source{X: 2, Y: 2, Z: 1}
 	mic := scene.Mic{
@@ -128,6 +148,8 @@ func TestComputeReflections_Order0(t *testing.T) {
 	assert.Empty(t, contribs)
 }
 
+// TestComputeReflections_Order1Count verifies that first-order reflections
+// produce exactly 6 contributions (one per wall) for a simple room with no gobos.
 func TestComputeReflections_Order1Count(t *testing.T) {
 	src := scene.Source{X: 2, Y: 2, Z: 1}
 	mic := scene.Mic{
@@ -147,6 +169,10 @@ func TestComputeReflections_Order1Count(t *testing.T) {
 	assert.Len(t, contribs, 6)
 }
 
+// TestComputeReflections_FirstOrderDelay checks sample delays for the east and
+// west wall reflections against hand-calculated values:
+//   East (p=1): image at x=18, dist to mic at x=7 → 11 m → 1539 samples.
+//   West (p=-1): image at x=-2, dist to mic at x=7 → 9 m → 1259 samples.
 func TestComputeReflections_FirstOrderDelay(t *testing.T) {
 	// src=(2,2,1), mic=(7,2,1), room 10×8×4 m, 48000 Hz, all walls concrete.
 	// East-wall image (p=1): x=18, dist=11m → delay=round(11/343*48000)=1539

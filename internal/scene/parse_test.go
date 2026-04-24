@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// validSceneJSON is a minimal well-formed scene used as the baseline for
+// parse tests. It contains one source, one mic, and known materials on all
+// surfaces. Tests that exercise validation failures derive their inputs from
+// this by replacing specific fields.
 const validSceneJSON = `{
 	"version": 1,
 	"sample_rate": 48000,
@@ -28,6 +32,9 @@ const validSceneJSON = `{
 	}]
 }`
 
+// writeTemp writes content to a temporary file within t's temp directory and
+// returns the path. Used to supply scene files to Parse without touching the
+// real filesystem.
 func writeTemp(t *testing.T, content string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "scene.json")
@@ -35,6 +42,8 @@ func writeTemp(t *testing.T, content string) string {
 	return path
 }
 
+// TestParseValid verifies that a well-formed scene parses without error and
+// that the resulting Scene contains the expected source and room geometry.
 func TestParseValid(t *testing.T) {
 	s, err := Parse(writeTemp(t, validSceneJSON))
 	require.NoError(t, err)
@@ -43,6 +52,8 @@ func TestParseValid(t *testing.T) {
 	assert.Equal(t, 5.0, s.Room.Width)
 }
 
+// TestParseUnknownMaterial verifies that a scene referencing a material not
+// in KnownMaterials ("moon_rock") is rejected at validation time.
 func TestParseUnknownMaterial(t *testing.T) {
 	bad := `{
 		"version": 1, "sample_rate": 48000,
@@ -61,6 +72,8 @@ func TestParseUnknownMaterial(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestParseUnknownPattern verifies that a mic with an unrecognised polar
+// pattern ("bidirectional") is rejected at validation time.
 func TestParseUnknownPattern(t *testing.T) {
 	bad := `{
 		"version": 1, "sample_rate": 48000,
@@ -79,6 +92,8 @@ func TestParseUnknownPattern(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestParseNoSources verifies that a scene with an empty sources array is
+// rejected — the engine requires at least one source to generate any output.
 func TestParseNoSources(t *testing.T) {
 	bad := `{
 		"version": 1, "sample_rate": 48000,

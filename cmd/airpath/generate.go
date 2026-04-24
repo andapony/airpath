@@ -8,6 +8,12 @@ import (
 	"github.com/andapony/airpath/internal/engine"
 )
 
+// newGenerateCmd returns the "generate" sub-command, which parses flags,
+// constructs an engine.Config, and calls engine.Run. On success it prints the
+// output directory path; on failure it returns an error for Cobra to report.
+//
+// Flags: --scene (required), --output, --samplerate, --duration, --order,
+// --tail (default true), --tail-onset.
 func newGenerateCmd() *cobra.Command {
 	var scenePath, outputDir string
 	var sampleRate, order int

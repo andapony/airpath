@@ -11,7 +11,10 @@ import (
 	"github.com/andapony/airpath/internal/scene"
 )
 
-// Config holds runtime parameters for a generate run.
+// Config holds all runtime parameters for a single generate run.
+// Zero values are intentionally meaningful: TailEnabled=false preserves pre-M4
+// behaviour (no reverb tail added), TailOnset=0 triggers the internal default of
+// 80 ms, and SampleRate=0 defers to the sample_rate field in the scene file.
 type Config struct {
 	ScenePath       string
 	OutputDir       string
@@ -22,8 +25,17 @@ type Config struct {
 	TailOnset       float64 // tail onset in seconds; 0 uses default of 0.08
 }
 
-// Run loads the scene, computes IRs for all source-mic pairs, and writes WAV
-// files to OutputDir.
+// Run loads the scene from cfg.ScenePath, computes IRs for every source-mic pair,
+// and writes one WAV file per pair to cfg.OutputDir. Each IR is assembled from
+// the direct path and, when cfg.ReflectionOrder > 0, specular reflections up to
+// that order. When cfg.TailEnabled is true, a Sabine-based synthetic reverb tail
+// is mixed in starting at cfg.TailOnset seconds (default 80 ms).
+//
+// Output files are named "<source_id>_to_<mic_id>.wav". The output directory is
+// created if it does not already exist.
+//
+// Returns an error if the scene cannot be parsed, the duration is non-positive,
+// the output directory cannot be created, or any WAV write fails.
 func Run(cfg Config) error {
 	s, err := scene.Parse(cfg.ScenePath)
 	if err != nil {
@@ -74,10 +86,21 @@ func Run(cfg Config) error {
 	return nil
 }
 
-// mixReverbTail generates and mixes a reverb tail into ir, scaling it to match
-// the IR energy in the ±20 ms window around the tail onset.
+// mixReverbTail generates a synthetic reverb tail for room and mixes it into ir
+// in-place, returning the modified buffer. The tail amplitude is scaled to match
+// the RMS of ir in a ±20 ms window centred on tailOnsetSamples, so the tail
+// energy blends smoothly into the late-reverb portion of the IR.
+//
+// Window clamping: when tailOnsetSamples is near the start or end of the buffer,
+// the window is clamped to [0, lengthSamples). If the window contains no energy
+// (zero RMS), tailScale is zero and no tail is mixed in — acoustically correct
+// for source-mic pairs where no reflections reach the onset point.
+//
+// Assumption: ir and the generated tail have the same length (lengthSamples).
+// The tail is added sample-by-sample; samples before tailOnsetSamples are zero
+// by construction and do not alter the early part of the IR.
 func mixReverbTail(ir []float64, room scene.Room, sampleRate, lengthSamples, tailOnsetSamples int) []float64 {
-	window := sampleRate / 50 // 20 ms
+	window := sampleRate / 50 // ±20 ms window for RMS measurement
 	wStart := tailOnsetSamples - window
 	if wStart < 0 {
 		wStart = 0

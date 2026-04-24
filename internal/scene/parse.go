@@ -6,11 +6,19 @@ import (
 	"os"
 )
 
+// validPatterns is the set of microphone polar pattern names accepted by the
+// scene validator. Any mic.Pattern value not in this map causes validation to fail.
 var validPatterns = map[string]bool{
 	"omni": true, "cardioid": true, "supercardioid": true, "figure8": true,
 }
 
-// Parse reads and validates a scene JSON file.
+// Parse reads a scene JSON file from path, unmarshals it into a Scene, and
+// validates the result. Returns an error if the file cannot be read, if the
+// JSON is malformed, or if the scene fails validation (unknown materials,
+// unknown mic patterns, missing required fields, etc.).
+//
+// Assumptions: path is a readable file on the local filesystem. The JSON
+// must conform to version 1 of the scene format (see docs/ for the spec).
 func Parse(path string) (*Scene, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -26,6 +34,21 @@ func Parse(path string) (*Scene, error) {
 	return &s, nil
 }
 
+// validate checks that s satisfies all constraints required by the acoustic
+// engine. It does not check geometric constraints (e.g. sources outside the
+// room) — those would silently produce correct but potentially surprising
+// results (image sources outside the physical room are valid in the
+// image-source method).
+//
+// Validated constraints:
+//   - Version == 1
+//   - SampleRate > 0
+//   - Room dimensions all positive
+//   - All surface materials in KnownMaterials
+//   - At least one source and one mic
+//   - All sources have non-empty IDs
+//   - All mics have non-empty IDs and recognised polar patterns
+//   - All gobo materials in KnownMaterials
 func validate(s *Scene) error {
 	if s.Version != 1 {
 		return fmt.Errorf("unsupported version %d", s.Version)

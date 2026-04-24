@@ -6,6 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestAssembleIRStampsContributions verifies that each PathContribution's
+// Amplitude lands at the correct sample index and that all other samples
+// remain zero.
 func TestAssembleIRStampsContributions(t *testing.T) {
 	contribs := []PathContribution{
 		{DelaySamples: 10, Amplitude: 0.5},
@@ -17,6 +20,8 @@ func TestAssembleIRStampsContributions(t *testing.T) {
 	assert.Zero(t, ir[0])
 }
 
+// TestAssembleIRSkipsOutOfBounds confirms that contributions whose DelaySamples
+// exceeds the buffer length are silently discarded, leaving all samples zero.
 func TestAssembleIRSkipsOutOfBounds(t *testing.T) {
 	contribs := []PathContribution{
 		{DelaySamples: 200, Amplitude: 1.0},
@@ -27,6 +32,8 @@ func TestAssembleIRSkipsOutOfBounds(t *testing.T) {
 	}
 }
 
+// TestAssembleIRAccumulates checks that multiple contributions at the same
+// sample index are summed (superposition of simultaneous arrivals).
 func TestAssembleIRAccumulates(t *testing.T) {
 	contribs := []PathContribution{
 		{DelaySamples: 5, Amplitude: 0.4},
@@ -36,6 +43,8 @@ func TestAssembleIRAccumulates(t *testing.T) {
 	assert.InDelta(t, 0.7, ir[5], 1e-9)
 }
 
+// TestAssembleIREmptyContributions verifies that a nil contributions slice
+// returns an all-zero buffer of the requested length.
 func TestAssembleIREmptyContributions(t *testing.T) {
 	ir := AssembleIR(nil, 100)
 	assert.Len(t, ir, 100)

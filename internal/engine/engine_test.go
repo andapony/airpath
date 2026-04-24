@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestRunSmallRoom is a smoke test that verifies Run produces one WAV file for
+// each of the four source-mic pairs defined in examples/small_room.json and
+// that each file is non-empty. Uses direct-path-only (ReflectionOrder=0).
 func TestRunSmallRoom(t *testing.T) {
 	outDir := t.TempDir()
 
@@ -34,6 +37,8 @@ func TestRunSmallRoom(t *testing.T) {
 	}
 }
 
+// TestRunMissingScene verifies that Run returns an error when the scene file
+// does not exist, rather than silently producing empty output.
 func TestRunMissingScene(t *testing.T) {
 	err := Run(Config{
 		ScenePath: "nonexistent.json",
@@ -43,6 +48,9 @@ func TestRunMissingScene(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestRunSmallRoom_WithReflections verifies that enabling first-order reflections
+// produces output files that differ from the direct-path-only run. This confirms
+// that ComputeReflections contributions are actually reaching AssembleIR.
 func TestRunSmallRoom_WithReflections(t *testing.T) {
 	outDirDirect := t.TempDir()
 	require.NoError(t, Run(Config{
@@ -81,6 +89,10 @@ func TestRunSmallRoom_WithReflections(t *testing.T) {
 	assert.NotEqual(t, directBytes, reflectedBytes, "guitar_to_room.wav should differ with reflections")
 }
 
+// TestRunSmallRoom_GoboChangesOutput verifies that the gobo in small_room.json
+// actually attenuates the guitar→room path. It runs the scene twice — once with
+// the canonical gobos and once with gobos removed — and confirms the WAV bytes
+// differ, proving DiffractionScalar is wired into the engine output.
 func TestRunSmallRoom_GoboChangesOutput(t *testing.T) {
 	// Run the same scene with and without the gobo to verify the gobo actually
 	// changes the output bytes for the blocked guitar→room pair.
@@ -147,6 +159,10 @@ func TestRunSmallRoom_GoboChangesOutput(t *testing.T) {
 	assert.NotEqual(t, withBytes, withoutBytes, "guitar_to_room.wav should differ when gobo is present")
 }
 
+// TestRunSmallRoom_TailChangesOutput verifies that enabling the reverb tail
+// produces WAV bytes that differ from the no-tail run. Uses ReflectionOrder=4
+// to ensure energy is present in the ±20 ms onset window (low-order reflections
+// in the small room all arrive before 30 ms; order 4 produces paths up to ~80 ms).
 func TestRunSmallRoom_TailChangesOutput(t *testing.T) {
 	outWithTail := t.TempDir()
 	require.NoError(t, Run(Config{

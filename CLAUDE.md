@@ -48,6 +48,17 @@ Three-layer pipeline: `scene.json → [parser] → [acoustic engine] → [WAV wr
 
 **Air absorption:** `exp(-α(f) * d)` — α ≈ 0.001/m at 1kHz, 0.01/m at 4kHz, 0.03/m at 8kHz
 
+## Commenting Requirements
+
+Every function — including test functions — must have a doc comment that describes:
+- What the function does
+- Any assumptions it relies on (input preconditions, invariants)
+- Any limitations it has (approximations made, known edge cases, deferred work)
+
+All non-trivial or non-obvious code must have inline comments explaining *why*, not *what* (the code already says what; the comment explains the reasoning, the constraint, or the subtlety).
+
+Obvious one-liners (simple getters, trivial arithmetic, standard library calls) do not need inline comments.
+
 ## Development Workflow
 
 When executing implementation plans, always use `superpowers:subagent-driven-development`. Dispatch one subagent per task rather than implementing inline.
